@@ -74,7 +74,7 @@ class Task extends Model
     {
         $actionStatuses = [
             User::ACTION_CANCEL => self::STATUS_CANCELED,
-            User::ACTION_RESPONSE => self::STATUS_IN_PROGRESS,
+            User::ACTION_RESPONSE => [],
             User::ACTION_COMPLETE => self::STATUS_COMPLETED,
             User::ACTION_DENY => self::STATUS_FAILED,
 
