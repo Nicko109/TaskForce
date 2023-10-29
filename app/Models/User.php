@@ -4,20 +4,27 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     protected $guarded = false;
 
 
-const ROLE_ADMIN = 0;
-const ROLE_CUSTOMER = 1;
-const ROLE_PERFORMER = 2;
+    const ROLE_ADMIN = 'admin';
+    const ROLE_CUSTOMER = 'customer';
+    const ROLE_PERFORMER = 'performer';
+
+
+    const ACTION_CANCEL = 'act_cancel';
+    const ACTION_RESPONSE = 'act_response';
+    const ACTION_COMPLETE = 'act_complete';
+    const ACTION_DENY = 'act_deny';
 
 
     public static function getRoles()
@@ -29,23 +36,56 @@ const ROLE_PERFORMER = 2;
         ];
     }
 
-    const ACTION_CANCEL = 1;
-    const ACTION_RESPONSE = 2;
-    const ACTION_COMPLETE = 3;
-    const ACTION_DENY = 4;
-
 
     public static function getActions()
     {
         return [
             self::ACTION_CANCEL => 'Отменить',
             self::ACTION_RESPONSE => 'Откликнуться',
-            self::ACTION_COMPLETE => 'Завершить',
+            self::ACTION_COMPLETE => 'Выполнено',
             self::ACTION_DENY => 'Отказаться',
         ];
     }
 
 
+    public function roleAllowedActions()
+    {
+        $roleActions = [
+            self::ROLE_CUSTOMER => [self::ACTION_CANCEL, self::ACTION_COMPLETE],
+            self::ROLE_PERFORMER => [self::ACTION_RESPONSE, self::ACTION_DENY],
+        ];
+
+        return $roleActions[$this->role] ?? [];
+    }
+
+
+    public function canPerformAction($action)
+    {
+        return in_array($action, $this->roleAllowedActions());
+    }
+
+    //Условие в будущем контроллере
+//    public function someAction(Request $request)
+//    {
+//        $user = User::find(1); // Пример получения пользователя
+//
+//        if ($user->canPerformAction(User::ACTION_CANCEL)) {
+//            // Заказчик может отменить задание
+//            // Ваш код для отмены задания
+//        } elseif ($user->canPerformAction(User::ACTION_RESPONSE)) {
+//            // Исполнитель может откликнуться на задание
+//            // Ваш код для отклика на задание
+//        } elseif ($user->canPerformAction(User::ACTION_COMPLETE)) {
+//            // Заказчик может завершить задание
+//            // Ваш код для завершения задания
+//        } elseif ($user->canPerformAction(User::ACTION_DENY)) {
+//            // Исполнитель может отказаться от задания
+//            // Ваш код для отказа от задания
+//        } else {
+//            // Действие не разрешено для данного пользователя
+//            // Ваш код в случае отсутствия прав
+//        }
+//    }
 
 
     /**
@@ -81,9 +121,24 @@ const ROLE_PERFORMER = 2;
         'password' => 'hashed',
     ];
 
+    public function city()
+    {
+        return $this->belongsTo(City::class, 'city_id', 'id');
+    }
+
 
     public function responses()
     {
-        return $this->hasMany(Response::class,  'user_id', 'id');
+        return $this->hasMany(Response::class, 'user_id', 'id');
+    }
+
+    public function comments()
+    {
+        return $this->hasMany(Comment::class,  'user_id', 'id');
+    }
+
+    public function messages()
+    {
+        return $this->hasMany(Message::class,  'user_id', 'id');
     }
 }

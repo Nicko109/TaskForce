@@ -20,9 +20,17 @@ return new class extends Migration
             $table->rememberToken();
             $table->timestamps();
             $table->softDeletes();
+            $table->unsignedMediumInteger('blocked')->default(0);
+            $table->dateTime('last_activity')->nullable();
+            $table->string('phone')->nullable()->unique();
+            $table->string('skype')->nullable()->unique();
+            $table->string('messenger')->nullable()->unique();
             $table->string('avatar')->nullable();
             $table->string('role');
             $table->string('action');
+            $table->unsignedBigInteger('city_id');
+            $table->index('city_id', 'user_city_idx');
+            $table->foreign('city_id', 'user_city_fk')->on('cities')->references('id');
         });
     }
 

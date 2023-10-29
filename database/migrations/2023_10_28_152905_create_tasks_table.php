@@ -15,8 +15,9 @@ return new class extends Migration
             $table->id();
             $table->string('title');
             $table->text('description');
-            $table->unsignedSmallInteger('status')->default(0);
+            $table->string('status')->default('new');
             $table->unsignedBigInteger('price')->nullable();
+            $table->string('location')->nullable();
             $table->unsignedBigInteger('category_id');
             $table->unsignedBigInteger('city_id');
             $table->dateTime('deadline');
