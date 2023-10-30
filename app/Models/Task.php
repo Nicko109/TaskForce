@@ -3,6 +3,11 @@
 namespace App\Models;
 
 
+use App\Models\Actions\CancelAction;
+use App\Models\Actions\AbstractAction;
+use App\Models\Actions\CompleteAction;
+use App\Models\Actions\DenyAction;
+use App\Models\Actions\ResponseAction;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -46,7 +51,7 @@ class Task extends Model
 
     public function getCurrentStatus()
     {
-        return $this->currentStatus;
+        return $this->status;
     }
 
     public function getPerformerId()
@@ -59,27 +64,48 @@ class Task extends Model
         return $this->customerId;
     }
 
-
-    public function getAvailableActions()
+    public function getAvailableActions(string $role, int $id)
     {
-        $statusActions = [
-            self::STATUS_NEW => [User::ACTION_CANCEL, User::ACTION_RESPONSE],
-            self::STATUS_IN_PROGRESS => [User::ACTION_COMPLETE, User::ACTION_DENY]
+        $statusActions = $this->statusAllowedActions()[$this->status];
+
+        $user = User::find($id);
+
+        $roleActions = $user->roleAllowedActions()[$role];
+
+        $allowedActions = array_intersect($statusActions, $roleActions);
+
+        $allowedActions = array_filter($allowedActions, function ($action) use ($id) {
+            return $action::checkRights($id, $this->performerId, $this->customerId);
+        });
+
+        return array_values($allowedActions);
+    }
+
+
+
+    public function statusAllowedActions()
+    {
+        $statusAllowedActions = [
+            self::STATUS_NEW => [CancelAction::class, ResponseAction::class],
+            self::STATUS_IN_PROGRESS => [CompleteAction::class, DenyAction::class],
+            self::STATUS_CANCELED => [],
+            self::STATUS_COMPLETED => [],
+            self::STATUS_FAILED => [],
         ];
 
-        return $statusActions[$this->status] ?? [];
+        return $statusAllowedActions[$this->status] ?? [];
     }
 
     public function getNextStatus($action)
     {
-        $actionStatuses = [
-            User::ACTION_CANCEL => self::STATUS_CANCELED,
-            User::ACTION_RESPONSE => [],
-            User::ACTION_COMPLETE => self::STATUS_COMPLETED,
-            User::ACTION_DENY => self::STATUS_FAILED,
+        $nextStatuses = [
+            CancelAction::class => self::STATUS_CANCELED,
+            ResponseAction::class => [],
+            CompleteAction::class => self::STATUS_COMPLETED,
+            DenyAction::class => self::STATUS_FAILED,
 
         ];
-        return $actionStatuses[$action] ?? $this->status;
+        return $nextStatuses[$action] ?? $this->status;
     }
 
 

@@ -3,6 +3,10 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\Actions\CancelAction;
+use App\Models\Actions\CompleteAction;
+use App\Models\Actions\DenyAction;
+use App\Models\Actions\ResponseAction;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -48,14 +52,14 @@ class User extends Authenticatable
     }
 
 
-    public function roleAllowedActions()
+    public static function roleAllowedActions()
     {
         $roleActions = [
-            self::ROLE_CUSTOMER => [self::ACTION_CANCEL, self::ACTION_COMPLETE],
-            self::ROLE_PERFORMER => [self::ACTION_RESPONSE, self::ACTION_DENY],
+            self::ROLE_CUSTOMER => [CancelAction::class, CompleteAction::class],
+            self::ROLE_PERFORMER => [ResponseAction::class, DenyAction::class],
         ];
 
-        return $roleActions[$this->role] ?? [];
+        return $roleActions;
     }
 
 
